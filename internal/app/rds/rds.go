@@ -20,6 +20,7 @@ import (
 type Configuration struct {
 	CollectLogsSize     bool
 	CollectMaintenances bool
+	FilterInstances     []string
 }
 
 type Metrics struct {
@@ -200,6 +201,19 @@ func (r *RDSFetcher) GetInstancesMetrics() (Metrics, error) {
 	}
 
 	input := &aws_rds.DescribeDBInstancesInput{}
+
+	if len(r.configuration.FilterInstances) > 0 {
+		awsStrings := []string{}
+
+		for _, id := range r.configuration.FilterInstances {
+			awsStrings = append(awsStrings, *aws.String(id))
+		}
+
+		input.Filters = []aws_rds_types.Filter{{
+			Name:   aws.String("db-instance-id"),
+			Values: awsStrings,
+		}}
+	}
 
 	paginator := aws_rds.NewDescribeDBInstancesPaginator(r.client, input)
 	for paginator.HasMorePages() {
